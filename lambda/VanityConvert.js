@@ -1,8 +1,5 @@
-const { FORMERR } = require("dns");
 const wordsLists = require("./wordsLists");
 const searchBinary = require("./searchBinary");
-
-const testnum = "+1236647767";
 
 const createVanityNumbers = (phoneNumber) => {
   const phoneNumberArray = phoneNumber
@@ -11,6 +8,7 @@ const createVanityNumbers = (phoneNumber) => {
 
   var foundWords = [];
   const generateWord = (currentWord, numArray, origArray, ref, length) => {
+    //Recursively build out words from a number array, short circuit out if no words of the full length are found that start with the letters we are building.
     if (numArray.length === 0) return false;
 
     let numbersRef = {
@@ -69,32 +67,50 @@ const createVanityNumbers = (phoneNumber) => {
     }
   };
 
-  let tempArray = phoneNumberArray.slice(3, phoneNumberArray.length);
   const vanityNumbers = [];
   const prefix = phoneNumberArray.slice(0, 3).join("");
   var result;
+  // check for the "best" outcomes; either a seven letter word or a three letter followed by a four letter
+  // ignore this block if the number contains 0 or 1 since it can't be seven characters
   if (
     !phoneNumberArray.slice(3).includes("0") &&
     !phoneNumberArray.slice(3).includes("1")
   )
     do {
-      result = generateWord("", tempArray, tempArray, 0, tempArray.length);
+      let fullNumberArray = phoneNumberArray.slice(3, phoneNumberArray.length);
+      result = generateWord(
+        "",
+        fullNumberArray,
+        fullNumberArray,
+        0,
+        fullNumberArray.length
+      );
       if (result) vanityNumbers.push(prefix + result);
     } while (result);
 
   if (vanityNumbers.length < 5) {
-    tempArray = [];
-    tempArray = phoneNumberArray.slice(3, 6);
+    let firstThreeArray = phoneNumberArray.slice(3, 6);
     const firstThree = [];
     do {
-      result = generateWord("", tempArray, tempArray, 0, tempArray.length);
+      result = generateWord(
+        "",
+        firstThreeArray,
+        firstThreeArray,
+        0,
+        firstThreeArray.length
+      );
       if (result) firstThree.push(result);
     } while (result);
-    tempArray = [];
-    tempArray = phoneNumberArray.slice(6, phoneNumberArray.length);
+    let lastFourArray = phoneNumberArray.slice(6, phoneNumberArray.length);
     const lastFour = [];
     do {
-      result = generateWord("", tempArray, tempArray, 0, tempArray.length);
+      result = generateWord(
+        "",
+        lastFourArray,
+        lastFourArray,
+        0,
+        lastFourArray.length
+      );
       if (result) lastFour.push(result);
     } while (result);
     if (firstThree.length > 0 && lastFour.length > 0) {
@@ -109,8 +125,11 @@ const createVanityNumbers = (phoneNumber) => {
     }
   }
   foundWords = [];
+  // if we don't have 5 best case, programmatically go through the number array in chunks
+  // This can probably be done better recursively
   if (vanityNumbers.length < 5) {
     for (var q = 0; q < phoneNumberArray.length; q++) {
+      // Start from the front of the number and check six characters first.
       let chunk = phoneNumberArray.slice(3 + q, phoneNumberArray.length);
       for (let i = 0; i < chunk.length; i++) {
         let newchunk = i > 0 ? chunk.slice(0, -i) : chunk;
@@ -119,6 +138,7 @@ const createVanityNumbers = (phoneNumber) => {
             result = generateWord("", newchunk, newchunk, 0, newchunk.length);
           }
           if (result) {
+            //if we found something, go through the rest of the numbers and see if there is another word
             let therest = phoneNumberArray.slice(result.length + q + 3);
             if (therest.length === 0) {
               let finalnum =
@@ -175,6 +195,7 @@ const createVanityNumbers = (phoneNumber) => {
                       vanityNumbers.push(finalnum);
                     }
                   } else {
+                    if (q === 0 && result.length === 2) break;
                     const prenums =
                       q > 0 ? phoneNumberArray.slice(3, q + 3).join("") : "";
                     let finalnum = prefix + prenums + result + therest.join("");
