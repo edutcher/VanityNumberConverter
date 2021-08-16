@@ -17,3 +17,8 @@ The second part ended up being more challenging. I made the decision that the 'b
 ## Contact Flow
 
 ![Contact Flow](https://res.cloudinary.com/dd9hrrpch/image/upload/v1629101086/ContactFlow_qno2kl.jpg)
+
+## Credits
+
+Binary search from:
+https://github.com/posabsolute/javascript-binary-search-algorithm
