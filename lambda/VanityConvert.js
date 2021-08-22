@@ -7,10 +7,9 @@ const createVanityNumbers = (phoneNumber) => {
     .split("");
 
   var foundWords = [];
-  const generateWord = (currentWord, numArray, origArray, ref, length) => {
+  const generateWord = (currentWord, numArray, origArray, ref, found) => {
     //Recursively build out words from a number array, short circuit out if no words of the full length are found that start with the letters we are building.
     if (numArray.length === 0) return false;
-
     let numbersRef = {
       0: ["0"],
       1: ["1"],
@@ -26,10 +25,14 @@ const createVanityNumbers = (phoneNumber) => {
 
     const testWord = currentWord + numbersRef[numArray[0]][ref];
 
-    const wordSearch = searchBinary(testWord, wordsLists[length], foundWords);
-    if (wordSearch[0] && testWord.length === length) {
+    const wordSearch = searchBinary(
+      testWord,
+      wordsLists[origArray.length],
+      found
+    );
+    if (wordSearch[0] && testWord.length === origArray.length) {
       // Found a word
-      foundWords.push(testWord);
+      found.push(testWord);
       return testWord;
     } else if (wordSearch.length > 0) {
       // Found a potential match, move forward
@@ -38,14 +41,13 @@ const createVanityNumbers = (phoneNumber) => {
         numArray.slice(1, numArray.length),
         origArray,
         0,
-        length
+        found
       );
     } else if (ref < numbersRef[numArray[0]].length - 1) {
       // more options available, try again with next reference
-      return generateWord(currentWord, numArray, origArray, ref + 1, length);
+      return generateWord(currentWord, numArray, origArray, ref + 1, found);
     } else {
       // go back if there were more choices available prior
-
       const lastChar = currentWord[currentWord.length - 1];
       if (currentWord.length > 0) {
         for (let i = currentWord.length - 1; i >= 0; i--) {
@@ -59,7 +61,7 @@ const createVanityNumbers = (phoneNumber) => {
               formerArray,
               origArray,
               prevRef + 1,
-              length
+              found
             );
           }
         }
@@ -83,11 +85,11 @@ const createVanityNumbers = (phoneNumber) => {
         fullNumberArray,
         fullNumberArray,
         0,
-        fullNumberArray.length
+        foundWords
       );
       if (result) vanityNumbers.push(prefix + result);
     } while (result);
-
+  foundWords = [];
   if (vanityNumbers.length < 5) {
     let firstThreeArray = phoneNumberArray.slice(3, 6);
     const firstThree = [];
@@ -97,21 +99,13 @@ const createVanityNumbers = (phoneNumber) => {
         firstThreeArray,
         firstThreeArray,
         0,
-        firstThreeArray.length
+        firstThree
       );
-      if (result) firstThree.push(result);
     } while (result);
     let lastFourArray = phoneNumberArray.slice(6, phoneNumberArray.length);
     const lastFour = [];
     do {
-      result = generateWord(
-        "",
-        lastFourArray,
-        lastFourArray,
-        0,
-        lastFourArray.length
-      );
-      if (result) lastFour.push(result);
+      result = generateWord("", lastFourArray, lastFourArray, 0, lastFour);
     } while (result);
     if (firstThree.length > 0 && lastFour.length > 0) {
       for (start of firstThree) {
@@ -127,94 +121,87 @@ const createVanityNumbers = (phoneNumber) => {
   foundWords = [];
   // if we don't have 5 best case, programmatically go through the number array in chunks
   // This can probably be done better recursively
+  result = false;
   if (vanityNumbers.length < 5) {
-    for (var q = 0; q < phoneNumberArray.length; q++) {
-      // Start from the front of the number and check six characters first.
-      let chunk = phoneNumberArray.slice(3 + q, phoneNumberArray.length);
-      for (let i = 0; i < chunk.length; i++) {
-        let newchunk = i > 0 ? chunk.slice(0, -i) : chunk;
+    for (let i = 6; i >= 2; i--) {
+      let span = 6 - i;
+      for (let j = 0; j <= span; j++) {
+        let chunk = phoneNumberArray.slice(j + 3, 3 + i + j);
         do {
-          if (newchunk.length > 1) {
-            result = generateWord("", newchunk, newchunk, 0, newchunk.length);
-          }
+          result = generateWord("", chunk, chunk, 0, foundWords);
           if (result) {
-            //if we found something, go through the rest of the numbers and see if there is another word
-            let therest = phoneNumberArray.slice(result.length + q + 3);
-            if (therest.length === 0) {
-              let finalnum =
-                prefix + phoneNumberArray.slice(3, q + 3).join("") + result;
-              if (!vanityNumbers.includes(finalnum)) {
-                vanityNumbers.push(finalnum);
-              }
-            } else if (therest.length === 1) {
-              let finalnum =
-                prefix +
-                phoneNumberArray.slice(3, q + 3).join("") +
-                result +
-                phoneNumberArray[phoneNumberArray.length - 1];
-              if (!vanityNumbers.includes(finalnum)) {
-                vanityNumbers.push(finalnum);
-              }
-            } else if (therest.length > 1) {
-              for (let j = 0; j <= therest.length - 1; j++) {
+            let theRest = phoneNumberArray.slice(3 + result.length + j);
+            if (theRest.length > 1) {
+              for (let q = 0; q <= theRest.length - 2; q++) {
+                let newResult = false;
+                let newChunk = theRest.slice(q);
+                let newFoundWords = [];
                 do {
-                  let lastchunk = therest.slice(j, therest.length);
-                  if (lastchunk.length > 1) {
-                    var newresult = generateWord(
-                      "",
-                      lastchunk,
-                      lastchunk,
-                      0,
-                      lastchunk.length
-                    );
+                  newResult = generateWord(
+                    "",
+                    newChunk,
+                    newChunk,
+                    0,
+                    newFoundWords
+                  );
+                } while (newResult);
+                if (newFoundWords.length > 0) {
+                  for (let firstWord of foundWords) {
+                    for (let lastWord of newFoundWords) {
+                      let finalNumber =
+                        prefix +
+                        phoneNumberArray.slice(3, 3 + j).join("") +
+                        firstWord +
+                        phoneNumberArray
+                          .slice(
+                            3 + j + firstWord.length,
+                            3 + j + firstWord.length + q
+                          )
+                          .join("") +
+                        lastWord +
+                        phoneNumberArray
+                          .slice(
+                            3 + j + firstWord.length + q + lastWord.length,
+                            phoneNumberArray.length
+                          )
+                          .join("");
+                      if (!vanityNumbers.includes(finalNumber)) {
+                        vanityNumbers.push(finalNumber);
+                        if (vanityNumbers.length >= 5) break;
+                      }
+                    }
                   }
-                  if (newresult) {
-                    const prenums =
-                      q > 0 ? phoneNumberArray.slice(3, q + 3).join("") : "";
-                    const midnums =
-                      j > 0
-                        ? phoneNumberArray
-                            .slice(
-                              3 + prenums.length + result.length,
-                              3 + prenums.length + result.length + j
-                            )
-                            .join("")
-                        : "";
-                    let finalnum =
+                } else {
+                  for (let word of foundWords) {
+                    let finalNumber =
                       prefix +
-                      prenums +
-                      result +
-                      midnums +
-                      newresult +
-                      phoneNumberArray
-                        .slice(
-                          result.length + q + midnums + newresult.length + 3
-                        )
-                        .join("");
-                    if (!vanityNumbers.includes(finalnum)) {
-                      vanityNumbers.push(finalnum);
+                      phoneNumberArray.slice(3, 3 + j).join("") +
+                      word +
+                      phoneNumberArray.slice(3 + j + word.length).join("");
+                    if (!vanityNumbers.includes(finalNumber)) {
+                      vanityNumbers.push(finalNumber);
+                      if (vanityNumbers.length >= 5) break;
                     }
-                  } else {
-                    if (q === 0 && result.length === 2) break;
-                    const prenums =
-                      q > 0 ? phoneNumberArray.slice(3, q + 3).join("") : "";
-                    let finalnum = prefix + prenums + result + therest.join("");
-                    if (!vanityNumbers.includes(finalnum)) {
-                      vanityNumbers.push(finalnum);
-                    }
-
-                    if (vanityNumbers.length >= 5) break;
                   }
-                } while (newresult);
+                }
+                newFoundWords = [];
+              }
+            } else {
+              let finalNumber =
+                prefix +
+                phoneNumberArray.slice(3, 3 + j).join("") +
+                result +
+                theRest.join("");
+              if (!vanityNumbers.includes(finalNumber)) {
+                vanityNumbers.push(finalNumber);
+                if (vanityNumbers.length >= 5) break;
               }
             }
-            if (vanityNumbers.length >= 5) break;
           }
-
-          if (vanityNumbers.length >= 5) break;
         } while (result);
+        if (vanityNumbers.length >= 5) break;
+        foundWords = [];
       }
-      if (vanityNumbers.length >= 5) break;
     }
   }
   if (vanityNumbers.length > 5) {
