@@ -6,6 +6,7 @@ const createVanityNumbers = (phoneNumber) => {
     .substring(phoneNumber.length - 10, phoneNumber.length)
     .split("");
 
+  //Hash table for digit to character conversion
   let numbersRef = {
     0: ["0"],
     1: ["1"],
@@ -19,6 +20,7 @@ const createVanityNumbers = (phoneNumber) => {
     9: ["W", "X", "Y", "Z"],
   };
 
+  //Points for character
   let scrabbleScore = {
     A: 1,
     B: 3,
@@ -48,18 +50,23 @@ const createVanityNumbers = (phoneNumber) => {
     Z: 10,
   };
 
+  // Initializing found words object by position
   var foundWords = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] };
+
   const generateWord = (currentWord, numArray, origArray, ref, found) => {
     //Recursively build out words from a number array, short circuit out if no words of the full length are found that start with the letters we are building.
     if (numArray.length === 0) return false;
 
+    //add new character to the current test word
     const testWord = currentWord + numbersRef[numArray[0]][ref];
 
+    //search for the test word
     const wordSearch = searchBinary(
       testWord,
       wordsLists[origArray.length],
       found
     );
+
     if (wordSearch[0] && testWord.length === origArray.length) {
       // Found a word
       found.push(testWord);
@@ -99,11 +106,16 @@ const createVanityNumbers = (phoneNumber) => {
     }
   };
 
+  //Array to hold numbers
   const vanityNumbers = [];
+
+  //3 digit phone number prefix
   const prefix = phoneNumberArray.slice(0, 3).join("");
+
+  //variable to hold generated word
   var result;
 
-  //Find all words in all positions
+  //Find all words in all positions, start at position 0, and work backwords by word length
   for (let i = 0; i <= 5; i++) {
     for (let j = 7 - i; j > 1; j--) {
       let chunk = phoneNumberArray.slice(3 + i, 3 + j + i);
@@ -135,14 +147,19 @@ const createVanityNumbers = (phoneNumber) => {
                       3 + i + word.length + midNums + foundWords[j][q].length
                     )
                     .join("");
+
                 let score = 0;
+
                 for (let z = 0; z < word.length; z++) {
                   score += scrabbleScore[word[z]];
                 }
+
                 for (let z = 0; z < foundWords[j][q].length; z++) {
                   score += scrabbleScore[foundWords[j][q][z]];
                 }
+
                 let tempNum = { num: finalNumber, score };
+
                 if (
                   vanityNumbers.filter((item) => item.num === tempNum.num)
                     .length === 0
@@ -156,11 +173,15 @@ const createVanityNumbers = (phoneNumber) => {
                 phoneNumberArray.slice(3, 3 + i).join("") +
                 word +
                 phoneNumberArray.slice(3 + i + word.length).join("");
+
               let score = 0;
+
               for (let z = 0; z < word.length; z++) {
                 score += scrabbleScore[word[z]];
               }
+
               let tempNum = { num: finalNumber, score };
+
               if (
                 vanityNumbers.filter((item) => item.num === tempNum.num)
                   .length === 0
@@ -175,11 +196,15 @@ const createVanityNumbers = (phoneNumber) => {
             phoneNumberArray.slice(3, 3 + i).join("") +
             word +
             phoneNumberArray.slice(3 + i + word.length).join("");
+
           let score = 0;
+
           for (let z = 0; z < word.length; z++) {
             score += scrabbleScore[word[z]];
           }
+
           let tempNum = { num: finalNumber, score };
+
           if (
             vanityNumbers.filter((item) => item.num === tempNum.num).length ===
             0
